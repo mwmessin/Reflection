@@ -15,12 +15,11 @@ h1 { color: #ccc; }
 	width: 100%;
 	height: 100%;
 }
-.CodeMirror { border: 1px solid #eee; }
+.CodeMirror {
+	border: 1px solid #eee;
+}
 .CodeMirror-scroll {
 	height: auto;
-	overflow-y: hidden;
-	overflow-x: auto;
-	width: 100%;
 }
 .CodeMirror-dialog > div {
 	position: fixed;
@@ -42,7 +41,11 @@ div.CodeMirror-selected { background: #ff9; }
 .cm-s-default span.cm-string { color: #850; font-style: italic; }
 .cm-s-default span.cm-number { color: #F20; }
 .cm-s-default span.cm-comment { color: green; font-style: italic; }
-footer { color: #ccc; padding: 0 4px; }
+footer {
+	bottom: 0;
+	color: #ccc;
+	padding: 0 4px;
+}
 #scroll {
 	position: fixed;
 	top: 0;

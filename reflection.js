@@ -5,140 +5,85 @@
     return new ((function() {
 
       function _Class() {
+        this.resize = __bind(this.resize, this);
+        this.scrollSlide = __bind(this.scrollSlide, this);
+        this.scrollClick = __bind(this.scrollClick, this);
         this.scroll = __bind(this.scroll, this);
         this.reflect = __bind(this.reflect, this);
-        var canvas, dragging, keyMap, scrollKeys, state, _ref,
+        var keyMap, scrollKeys, scrollTop, state, _ref,
           _this = this;
         state = localStorage.getItem("state");
         this.editor = CodeMirror(document.body, {
           lineNumbers: true,
           autofocus: true,
-          value: state || "#Reflection ver 0.1",
+          value: state || "#Reflection: Coffeescript editor",
           onCursorActivity: function() {
             return _this.editor.matchHighlight("CodeMirror-matchhighlight");
           },
           onChange: this.reflect
         });
-        $("<canvas>").attr('id', 'scroll').appendTo(document.body);
-        $(document.body).append("<footer><code>MWM</code></footer>");
         this.width = 80;
-        this.height = $(window).height();
-        canvas = $("#scroll").attr("width", this.width).attr("height", this.height);
-        this.context = canvas[0].getContext("2d");
+        this.height = Math.max($(window).height(), this.editor.lineCount());
+        this.canvas = $("<canvas>").attr('id', 'scroll').attr("width", this.width).attr("height", this.height).appendTo(document.body);
+        this.context = this.canvas[0].getContext("2d");
         this.frame = (_ref = this.context.createImageData(this.width, this.height), this.data = _ref.data, _ref);
-        this.scrollTop = $(window).scrollTop();
-        this.scrollBottom = this.scrollTop + this.height;
+        scrollTop = $(window).scrollTop();
+        this.top = this.editor.coordsChar({
+          x: null,
+          y: scrollTop
+        }).line;
+        this.bottom = this.editor.coordsChar({
+          x: null,
+          y: scrollTop + $(window).height()
+        }).line + 1;
         this.reflect();
-        this.editor.setCursor({
-          line: this.editor.lineCount(),
-          ch: 0
-        });
         scrollKeys = {};
         keyMap = CodeMirror.keyMap["default"];
-        keyMap["Ctrl-1"] = function() {
+        keyMap["Shift-Ctrl-1"] = function() {
           return scrollKeys["1"] = $(window).scrollTop();
         };
-        keyMap["1"] = function() {
+        keyMap["Ctrl-1"] = function() {
           return $(window).scrollTop(scrollKeys["1"]);
-        };
-        keyMap["Ctrl-2"] = function() {
-          return scrollKeys["2"] = $(window).scrollTop();
-        };
-        keyMap["2"] = function() {
-          return $(window).scrollTop(scrollKeys["2"]);
-        };
-        keyMap["Ctrl-3"] = function() {
-          return scrollKeys["3"] = $(window).scrollTop();
-        };
-        keyMap["3"] = function() {
-          return $(window).scrollTop(scrollKeys["3"]);
-        };
-        keyMap["Ctrl-4"] = function() {
-          return scrollKeys["4"] = $(window).scrollTop();
-        };
-        keyMap["4"] = function() {
-          return $(window).scrollTop(scrollKeys["4"]);
         };
         CodeMirror.commands.save = function() {
           return _this.downloadAs("name.coffee");
         };
-        dragging = null;
-        $(window).scroll(this.scroll).mousedown(function(event) {
-          return dragging = true;
+        CodeMirror.commands.open = function() {
+          return _this.downloadAs("name.coffee");
+        };
+        this.dragging = null;
+        $(window).scroll(this.scroll).resize(this.resize).mousedown(function(event) {
+          return _this.dragging = true;
         }).mouseup(function(event) {
-          return dragging = false;
+          return _this.dragging = false;
         }).mouseleave(function(event) {
-          return dragging = false;
+          return _this.dragging = false;
         });
-        $("#scroll").click(function(event) {
-          var top, y;
-          y = event.clientY;
-          top = _this.editor.charCoords({
-            line: Math.max(0, y - 20),
-            ch: 0
-          }).y;
-          return $(window).scrollTop(top);
-        }).mousemove(function(event) {
-          var top, y;
-          if (dragging) {
-            y = event.clientY;
-            top = _this.editor.charCoords({
-              line: Math.max(0, y - 20),
-              ch: 0
-            }).y;
-            return $(window).scrollTop(top);
-          }
-        });
+        this.canvas.mouseup(this.scrollClick).mousemove(this.scrollSlide);
+        $(document.body).append("<footer><code>MWM</code></footer>");
       }
 
-      _Class.prototype.setPixel = function(x, y, r, g, b, a) {
-        var index;
-        index = (x + y * this.width) * 4;
-        this.data[index + 0] = r;
-        this.data[index + 1] = g;
-        this.data[index + 2] = b;
-        return this.data[index + 3] = a;
-      };
-
-      _Class.prototype.charAlpha = function(ch) {
-        if (/[._'"\-]/.test(ch)) {
-          return 150;
-        } else if (/[flyg]/.test(ch)) {
-          return 225;
-        } else if (/[a-z]/.test(ch)) {
-          return 200;
-        } else {
-          return 255;
-        }
-      };
-
       _Class.prototype.reflect = function(editor, change) {
-        var ch, col, end, first, last, line, linesChanged, t0, token, x, y;
+        var ch, col, end, line, linesChanged, t0, token, x, y;
         t0 = +(new Date);
-        x = col = 0;
-        y = 0;
-        end = this.height;
-        first = this.editor.coordsChar({
-          x: null,
-          y: this.scrollTop
-        }).line;
-        last = this.editor.coordsChar({
-          x: null,
-          y: this.scrollBottom
-        }).line + 1;
-        if (change) {
+        this.lines = this.editor.lineCount();
+        if (!change) {
+          x = col = 0;
+          y = 0;
+          end = this.lines;
+        } else {
           x = col = change.from.ch;
           y = change.from.line;
           linesChanged = change.to.line + 1 - y;
-          end = Math.max(end, y + linesChanged + 1);
-          if (linesChanged === change.text.length) end = y + linesChanged;
+          end = Math.max(this.lines, y + linesChanged + 1);
+          if (linesChanged === change.text.length) end = y + linesChanged + 1;
         }
         while (y < end) {
           while (col < this.width) {
             line = this.editor.getLine(y);
             ch = line != null ? line.charAt(col) : void 0;
             if (ch && /\t/.test(ch)) {
-              if (y > first && y < last) {
+              if ((this.top < y && y < this.bottom)) {
                 this.setPixel(x, y, 200, 225, 255, 125);
                 this.setPixel(x + 1, y, 200, 225, 255, 125);
               } else {
@@ -169,7 +114,7 @@
                 this.setPixel(x, y, 0, 0, 0, 255);
               }
             } else {
-              if (y > first && y < last) {
+              if ((this.top < y && y < this.bottom)) {
                 this.setPixel(x, y, 200, 225, 255, 125);
               } else {
                 this.setPixel(x, y, 0, 0, 0, 0);
@@ -183,30 +128,32 @@
         }
         this.context.putImageData(this.frame, 0, 0);
         localStorage.setItem("state", this.editor.getValue());
-        return console.log((+(new Date)) - t0 + "ms");
+        return console.log((+(new Date)) - t0 + "ms", 'reflect');
       };
 
       _Class.prototype.scroll = function() {
-        var ch, col, end, first, last, lines, x, y;
-        this.scrollTop = $(window).scrollTop();
-        this.scrollBottom = this.scrollTop + this.height;
-        lines = this.editor.lineCount();
-        end = Math.min(this.height, lines);
-        first = this.editor.coordsChar({
+        var bottom, ch, col, end, height, scrollTop, t0, top, x, y, _ref;
+        t0 = +(new Date);
+        top = this.top;
+        bottom = this.bottom;
+        height = $(window).height();
+        scrollTop = $(window).scrollTop();
+        this.top = this.editor.coordsChar({
           x: null,
-          y: this.scrollTop
+          y: scrollTop
         }).line;
-        last = this.editor.coordsChar({
+        this.bottom = this.editor.coordsChar({
           x: null,
-          y: this.scrollBottom
+          y: scrollTop + height
         }).line + 1;
-        y = 0;
+        y = Math.min(top, this.top);
+        end = Math.max(bottom, this.bottom);
         while (y < end) {
           x = col = 0;
           while (x < this.width) {
-            ch = this.editor.getLine(y).charAt(col);
+            ch = (_ref = this.editor.getLine(y)) != null ? _ref.charAt(col) : void 0;
             if (ch && /\t/.test(ch)) {
-              if (y > first && y < last) {
+              if ((this.top < y && y < this.bottom)) {
                 this.setPixel(x, y, 200, 225, 255, 125);
                 this.setPixel(x + 1, y, 200, 225, 255, 125);
               } else {
@@ -215,7 +162,7 @@
               }
               ++x;
             } else if (!ch || /\s/.test(ch)) {
-              if (y > first && y < last) {
+              if ((this.top < y && y < this.bottom)) {
                 this.setPixel(x, y, 200, 225, 255, 125);
               } else {
                 this.setPixel(x, y, 255, 255, 255, 125);
@@ -226,7 +173,56 @@
           }
           ++y;
         }
-        return this.context.putImageData(this.frame, 0, 0);
+        this.context.putImageData(this.frame, 0, 0);
+        if (this.lines > height) {
+          this.offset = -(this.top / this.lines * (this.lines - height)) | 0;
+          $("#scroll").css('top', this.offset + 'px');
+        }
+        return console.log((+(new Date)) - t0 + "ms", 'scroll');
+      };
+
+      _Class.prototype.scrollClick = function(event) {
+        var top, y;
+        if (this.dragging) return;
+        y = event.clientY - 20;
+        if (this.lines > this.height) {
+          top = y / this.height * $(".CodeMirror").height() | 0;
+        } else {
+          top = this.editor.charCoords({
+            line: Math.max(0, y),
+            ch: 0
+          }).y;
+        }
+        return $(window).scrollTop(top);
+      };
+
+      _Class.prototype.scrollSlide = function(event) {
+        var top, y;
+        if (!this.dragging) return;
+        y = event.clientY - 20;
+        if (this.lines > this.height) {
+          top = y / this.height * $(".CodeMirror").height() | 0;
+        } else {
+          top = this.editor.charCoords({
+            line: Math.max(0, y),
+            ch: 0
+          }).y;
+        }
+        return $(window).scrollTop(top);
+      };
+
+      _Class.prototype.resize = function() {
+        var _ref;
+        if ($(window).height() > this.lines) {
+          this.height = $(window).height();
+          this.canvas = $("#scroll").attr("height", this.height);
+          this.context = this.canvas[0].getContext("2d");
+          this.frame = (_ref = this.context.createImageData(this.width, this.height), this.data = _ref.data, _ref);
+        }
+        return this.bottom = this.editor.coordsChar({
+          x: null,
+          y: $(window).scrollTop() + $(window).height()
+        }).line + 1;
       };
 
       _Class.prototype.downloadAs = function(name) {
@@ -250,6 +246,27 @@
         }, function(e) {
           return console.error(e);
         });
+      };
+
+      _Class.prototype.charAlpha = function(ch) {
+        if (/[._'"\-]/.test(ch)) {
+          return 150;
+        } else if (/[flyg]/.test(ch)) {
+          return 225;
+        } else if (/[a-z]/.test(ch)) {
+          return 200;
+        } else {
+          return 255;
+        }
+      };
+
+      _Class.prototype.setPixel = function(x, y, r, g, b, a) {
+        var index;
+        index = (x + y * this.width) * 4;
+        this.data[index + 0] = r;
+        this.data[index + 1] = g;
+        this.data[index + 2] = b;
+        return this.data[index + 3] = a;
       };
 
       return _Class;
