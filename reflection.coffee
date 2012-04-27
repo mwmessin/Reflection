@@ -5,101 +5,71 @@ $ -> new class
 		@editor = CodeMirror(document.body,
 			lineNumbers: true
 			autofocus: true
-			value: state or "#Reflection ver 0.1"
+			value: state or "#Reflection: Coffeescript editor"
 			onCursorActivity: => @editor.matchHighlight "CodeMirror-matchhighlight"
 			onChange: @reflect
 		)
 		
-		$("<canvas>").attr('id', 'scroll').appendTo(document.body)
-		
-		$(document.body).append("<footer><code>MWM</code></footer>")
-		
 		@width = 80
-		@height = $(window).height()
-		canvas = $("#scroll").attr("width", @width).attr("height", @height)
-		@context = canvas[0].getContext("2d")
-		@frame = {@data} = @context.createImageData(@width, @height)
-		@scrollTop = $(window).scrollTop()
-		@scrollBottom = @scrollTop + @height
-		@reflect()
+		@height = Math.max($(window).height(), @editor.lineCount())
 		
-		@editor.setCursor({line: @editor.lineCount(), ch: 0})
+		@canvas = $("<canvas>")
+		.attr('id', 'scroll')
+		.attr("width", @width)
+		.attr("height", @height)
+		.appendTo(document.body)
+		
+		@context = @canvas[0].getContext("2d")
+		@frame = {@data} = @context.createImageData(@width, @height)
+		scrollTop = $(window).scrollTop()
+		@top = @editor.coordsChar(x: null, y: scrollTop).line
+		@bottom = @editor.coordsChar(x: null, y: scrollTop + $(window).height()).line + 1
+		
+		@reflect()
 		
 		scrollKeys = {}
 		keyMap = CodeMirror.keyMap["default"]
-		keyMap["Ctrl-1"] = -> scrollKeys["1"] = $(window).scrollTop()
-		keyMap["1"] = -> $(window).scrollTop(scrollKeys["1"])
-		keyMap["Ctrl-2"] = -> scrollKeys["2"] = $(window).scrollTop()
-		keyMap["2"] = -> $(window).scrollTop(scrollKeys["2"])
-		keyMap["Ctrl-3"] = -> scrollKeys["3"] = $(window).scrollTop()
-		keyMap["3"] = -> $(window).scrollTop(scrollKeys["3"])
-		keyMap["Ctrl-4"] = -> scrollKeys["4"] = $(window).scrollTop()
-		keyMap["4"] = -> $(window).scrollTop(scrollKeys["4"])
+		keyMap["Shift-Ctrl-1"] = -> scrollKeys["1"] = $(window).scrollTop()
+		keyMap["Ctrl-1"] = -> $(window).scrollTop(scrollKeys["1"])
 		
 		CodeMirror.commands.save = => @downloadAs("name.coffee")
+		CodeMirror.commands.open = => @downloadAs("name.coffee")
 		
-		dragging = null
+		@dragging = null
 		
 		$(window)
 		.scroll(@scroll)
-		.mousedown((event) -> dragging = true)
-		.mouseup((event) -> dragging = false)
-		.mouseleave((event) -> dragging = false)
+		.resize(@resize)
+		.mousedown((event) => @dragging = true)
+		.mouseup((event) => @dragging = false)
+		.mouseleave((event) => @dragging = false)
 		
-		$("#scroll")
-		.click((event) =>
-			y = event.clientY
-			top = @editor.charCoords(
-				line: Math.max(0, y - 20)
-				ch: 0
-			).y
-			$(window).scrollTop top
-		)
-		.mousemove (event) =>
-			if dragging
-				y = event.clientY
-				top = @editor.charCoords(
-					line: Math.max(0, y - 20)
-					ch: 0
-				).y
-				$(window).scrollTop top
-	
-	setPixel: (x, y, r, g, b, a) ->
-		index = (x + y * @width) * 4
-		@data[index + 0] = r
-		@data[index + 1] = g
-		@data[index + 2] = b
-		@data[index + 3] = a
-	
-	charAlpha: (ch) ->
-		if /[._'"\-]/.test(ch)
-			150
-		else if /[flyg]/.test(ch)
-			225
-		else if /[a-z]/.test(ch)
-			200
-		else
-			255
+		@canvas
+		.mouseup(@scrollClick)
+		.mousemove(@scrollSlide)
+		
+		$(document.body).append("<footer><code>MWM</code></footer>")
 	
 	reflect: (editor, change) =>
 		t0 = (+new Date)
-		x = col = 0
-		y = 0
-		end = @height
-		first = @editor.coordsChar(x: null, y: @scrollTop).line
-		last = @editor.coordsChar(x: null, y: @scrollBottom).line + 1
-		if change
+		
+		@lines = @editor.lineCount()
+		if not change
+			x = col = 0
+			y = 0
+			end = @lines
+		else
 			x = col = change.from.ch
 			y = change.from.line
 			linesChanged = change.to.line + 1 - y
-			end = Math.max(end, y + linesChanged + 1)
-			end = y + linesChanged if linesChanged is change.text.length
+			end = Math.max(@lines, y + linesChanged + 1)
+			end = y + linesChanged + 1 if linesChanged is change.text.length
 		while y < end
 			while col < @width
 				line = @editor.getLine(y)
 				ch = line?.charAt(col)
 				if ch and /\t/.test(ch)
-					if y > first and y < last
+					if @top < y < @bottom
 						@setPixel x, y, 200, 225, 255, 125
 						@setPixel x + 1, y, 200, 225, 255, 125
 					else
@@ -125,7 +95,7 @@ $ -> new class
 					else
 						@setPixel x, y, 0, 0, 0, 255
 				else
-					if y > first and y < last
+					if @top < y < @bottom
 						@setPixel x, y, 200, 225, 255, 125
 					else
 						@setPixel x, y, 0, 0, 0, 0
@@ -135,22 +105,26 @@ $ -> new class
 			++y
 		@context.putImageData @frame, 0, 0
 		localStorage.setItem("state", @editor.getValue())
-		console.log (+new Date) - t0 + "ms"
+		
+		console.log (+new Date) - t0 + "ms", 'reflect'
 	
 	scroll: =>
-		@scrollTop = $(window).scrollTop()
-		@scrollBottom = @scrollTop + @height
-		lines = @editor.lineCount()
-		end = Math.min(@height, lines)
-		first = @editor.coordsChar(x: null, y: @scrollTop).line
-		last = @editor.coordsChar(x: null, y: @scrollBottom).line + 1
-		y = 0
+		t0 = (+new Date)
+		
+		top = @top
+		bottom = @bottom
+		height = $(window).height()
+		scrollTop = $(window).scrollTop()
+		@top = @editor.coordsChar(x: null, y: scrollTop).line
+		@bottom = @editor.coordsChar(x: null, y: scrollTop + height).line + 1
+		y = Math.min(top, @top)
+		end = Math.max(bottom, @bottom)
 		while y < end
 			x = col = 0
 			while x < @width
-				ch = @editor.getLine(y).charAt(col)
+				ch = @editor.getLine(y)?.charAt(col)
 				if ch and /\t/.test(ch)
-					if y > first and y < last
+					if @top < y < @bottom
 						@setPixel x, y, 200, 225, 255, 125
 						@setPixel x + 1, y, 200, 225, 255, 125
 					else
@@ -158,7 +132,7 @@ $ -> new class
 						@setPixel x + 1, y, 0, 0, 0, 0
 					++x
 				else if not ch or /\s/.test(ch)
-					if y > first and y < last
+					if @top < y < @bottom
 						@setPixel x, y, 200, 225, 255, 125
 					else
 						@setPixel x, y, 255, 255, 255, 125
@@ -166,9 +140,43 @@ $ -> new class
 				++col
 			++y
 		@context.putImageData @frame, 0, 0
-		#if lines > @height
-			#offset = -(first / lines * (lines - @height)) | 0
-			#$("#scroll").css('top', offset + 'px') 
+		if @lines > height
+			@offset = -(@top / @lines * (@lines - height)) | 0
+			$("#scroll").css('top', @offset + 'px') 
+		
+		console.log (+new Date) - t0 + "ms", 'scroll'
+	
+	scrollClick: (event) =>
+		return if @dragging
+		y = event.clientY - 20
+		if @lines > @height
+			top = y / @height * $(".CodeMirror").height() | 0
+		else
+			top = @editor.charCoords(
+				line: Math.max(0, y)
+				ch: 0
+			).y
+		$(window).scrollTop top
+	
+	scrollSlide: (event) =>
+		return if not @dragging
+		y = event.clientY - 20
+		if @lines > @height
+			top = y / @height * $(".CodeMirror").height() | 0
+		else
+			top = @editor.charCoords(
+				line: Math.max(0, y)
+				ch: 0
+			).y
+		$(window).scrollTop top
+	
+	resize: =>
+		if ($(window).height() > @lines)
+			@height = $(window).height()
+			@canvas = $("#scroll").attr("height", @height)
+			@context = @canvas[0].getContext("2d")
+			@frame = {@data} = @context.createImageData(@width, @height)
+		@bottom = @editor.coordsChar(x: null, y: $(window).scrollTop() + $(window).height()).line + 1
 	
 	downloadAs: (name) ->
 		raw = @editor.getValue()
@@ -183,4 +191,21 @@ $ -> new class
 				, ->)
 			, ->)
 		, (e) -> console.error(e))
+	
+	charAlpha: (ch) ->
+		if /[._'"\-]/.test(ch)
+			150
+		else if /[flyg]/.test(ch)
+			225
+		else if /[a-z]/.test(ch)
+			200
+		else
+			255
+	
+	setPixel: (x, y, r, g, b, a) ->
+		index = (x + y * @width) * 4
+		@data[index + 0] = r
+		@data[index + 1] = g
+		@data[index + 2] = b
+		@data[index + 3] = a
 	
