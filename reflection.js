@@ -9,7 +9,7 @@
           this.resize = __bind(this.resize, this);
           this.scroll = __bind(this.scroll, this);
           this.reflect = __bind(this.reflect, this);
-          var keyMap, scrollKeys, scrollTop, state, _ref,
+          var i, keyMap, scrollKeys, scrollTop, state, _fn, _ref,
             _this = this;
           state = localStorage.getItem("state");
           this.editor = CodeMirror(document.body, {
@@ -37,20 +37,32 @@
             y: scrollTop + this.windowHeight
           }).line + 1;
           this.reflect();
-          scrollKeys = {};
+          scrollKeys = [];
           keyMap = CodeMirror.keyMap["default"];
-          keyMap["Shift-Ctrl-1"] = function() {
-            console.log("1: " + $(window).scrollTop());
-            return scrollKeys["1"] = $(window).scrollTop();
+          _fn = function(i) {
+            keyMap["Shift-Ctrl-" + i] = function() {
+              console.log(i + ": " + $(window).scrollTop());
+              return scrollKeys[i] = $(window).scrollTop();
+            };
+            return keyMap["Ctrl-" + i] = function() {
+              console.log(i + "> " + scrollKeys[i]);
+              return $(window).scrollTop(scrollKeys[i]);
+            };
           };
-          keyMap["Ctrl-1"] = function() {
-            console.log("1> " + scrollKeys["1"]);
-            return $(window).scrollTop(scrollKeys["1"]);
+          for (i = 0; i <= 9; i++) {
+            _fn(i);
+          }
+          keyMap["Cmd-D"] = "download";
+          keyMap["Shift-Cmd-N"] = "findNext";
+          keyMap["Shift-Cmd-P"] = "findPrev";
+          keyMap["Shift-Cmd-R"] = "replace";
+          keyMap["Shift-Cmd-/"] = function() {
+            return console.log(keyMap);
           };
           CodeMirror.commands.save = function() {
-            return _this.downloadAs("name.coffee");
+            return localStorage.setItem("state", _this.editor.getValue());
           };
-          CodeMirror.commands.open = function() {
+          CodeMirror.commands.download = function() {
             return _this.downloadAs("name.coffee");
           };
           this.dragging = false;
@@ -164,7 +176,6 @@
             ++y;
           }
           this.context.putImageData(this.frame, 0, 0);
-          localStorage.setItem("state", this.editor.getValue());
           return console.log((+(new Date)) - t0 + "ms", 'reflect');
         };
 

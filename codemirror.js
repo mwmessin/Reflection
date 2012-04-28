@@ -111,10 +111,10 @@ var CodeMirror = (function() {
       if (options.onScroll) options.onScroll(instance);
     });
     connect(window, "resize", function() {updateDisplay(true);});
-    connect(input, "keyup", operation(onKeyUp));
+    connect(window, "keyup", operation(onKeyUp));
     connect(input, "input", fastPoll);
-    connect(input, "keydown", operation(onKeyDown));
-    connect(input, "keypress", operation(onKeyPress));
+    connect(window, "keydown", operation(onKeyDown));
+    connect(window, "keypress", operation(onKeyPress));
     connect(input, "focus", onFocus);
     connect(input, "blur", onBlur);
 

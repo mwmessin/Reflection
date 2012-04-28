@@ -28,17 +28,25 @@ $ -> $.get "reflection.coffee", (reflection) -> new class
 		
 		@reflect()
 		
-		scrollKeys = {}
+		scrollKeys = []
 		keyMap = CodeMirror.keyMap["default"]
-		keyMap["Shift-Ctrl-1"] = ->
-			console.log "1: " + $(window).scrollTop()
-			scrollKeys["1"] = $(window).scrollTop()
-		keyMap["Ctrl-1"] = ->
-			console.log "1> " + scrollKeys["1"]
-			$(window).scrollTop(scrollKeys["1"])
+		for i in [0..9]
+			((i) ->
+				keyMap["Shift-Ctrl-" + i] = ->
+					console.log i + ": " + $(window).scrollTop()
+					scrollKeys[i] = $(window).scrollTop()
+				keyMap["Ctrl-" + i] = ->
+					console.log i + "> " + scrollKeys[i]
+					$(window).scrollTop(scrollKeys[i])
+			)(i)
+		keyMap["Cmd-D"] = "download"
+		keyMap["Shift-Cmd-N"] = "findNext"
+		keyMap["Shift-Cmd-P"] = "findPrev"
+		keyMap["Shift-Cmd-R"] = "replace"
+		keyMap["Shift-Cmd-/"] = -> console.log keyMap
 		
-		CodeMirror.commands.save = => @downloadAs("name.coffee")
-		CodeMirror.commands.open = => @downloadAs("name.coffee")
+		CodeMirror.commands.save = => localStorage.setItem("state", @editor.getValue())
+		CodeMirror.commands.download = => @downloadAs("name.coffee")
 		
 		@dragging = false
 		@down = false
@@ -114,7 +122,6 @@ $ -> $.get "reflection.coffee", (reflection) -> new class
 			col = x = 0
 			++y
 		@context.putImageData(@frame, 0, 0)
-		localStorage.setItem("state", @editor.getValue())
 		
 		console.log (+new Date) - t0 + "ms", 'reflect'
 	
