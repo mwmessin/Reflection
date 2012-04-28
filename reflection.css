@@ -17,9 +17,13 @@ h1 { color: #ccc; }
 }
 .CodeMirror {
 	border: 1px solid #eee;
+	line-height: 1.2em;
 }
 .CodeMirror-scroll {
 	height: auto;
+}
+.CodeMirror-lines {
+	cursor: text;
 }
 .CodeMirror-dialog > div {
 	position: fixed;
