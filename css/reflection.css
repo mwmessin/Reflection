@@ -1,0 +1,59 @@
+body {
+	margin: 0;
+	padding: 0;
+	user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+}
+h1 { color: #ccc; }
+.drop {
+	position: fixed;
+	z-index: 42;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+}
+.CodeMirror {
+	border-bottom: 1px solid #eee;
+	line-height: 1.2em;
+}
+.CodeMirror-scroll {
+	height: auto;
+	overflow: visible;
+}
+.CodeMirror-lines {
+	cursor: text;
+}
+.CodeMirror-dialog > div {
+	position: fixed;
+	opacity: .8;
+	top: auto;
+	bottom: 0;
+	border-top: 1px solid #EFEFEF;
+}
+.CodeMirror pre.CodeMirror-cursor { border-left: 2px solid black; }
+.CodeMirror pre.CodeMirror-cursor.CodeMirror-overwrite { width: 8px; border-left: none; border-bottom: 2px solid black; }
+.CodeMirror-focused span.CodeMirror-matchhighlight { background: #ffb; !important }
+.CodeMirror-focused div.CodeMirror-selected { background: #ff0; }
+span.CodeMirror-matchhighlight { background: #ffc }
+div.CodeMirror-selected { background: #ff9; }
+.cm-s-default span.cm-string-2 { color: #80F; font-weight: bold; }
+.cm-s-default span.cm-operator { color: blue; font-weight: bold; }
+.cm-s-default span.cm-keyword { color: blue; font-weight: bold; }
+.cm-s-default span.cm-punctuation { color: gray; }
+.cm-s-default span.cm-string { color: #850; font-style: italic; }
+.cm-s-default span.cm-number { color: #F20; }
+.cm-s-default span.cm-comment { color: green; font-style: italic; }
+footer {
+	bottom: 0;
+	color: #ccc;
+	padding: 0 4px;
+}
+#scroll {
+	position: fixed;
+	top: 0;
+	right: 0;
+	border-left: 1px solid #EFEFEF;
+}
