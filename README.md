@@ -1,6 +1,21 @@
-[Reflection](http://mwmessin.github.io/Reflection/)
+Reflection
 ==========
 
-A minimal IDE for the web based on CodeMirror2. Features include syntax highlighting and a minimap replacement for the scrollbar, similar to SublimeText.
+### Description
 
--MWM
+A minimal IDE for the web based on CodeMirror2. Features include:
+* syntax highlighting 
+* minimap replacement for the scrollbar, similar to SublimeText
+* bookmarks/hotkeys
+
+Todo:
+* live editing
+* drag and drop
+
+### Project Page
+
+[Reflection](http://mwmessin.github.io/Reflection/)
+
+### Author(s)
+
+mwmessin
